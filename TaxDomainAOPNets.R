@@ -455,9 +455,6 @@ E(g)$e_tag<-speciesKERs$human | speciesKERs$humans
 #### PLOT GRAPH ####
 
 # standard plot variables
-set.seed(1)
-l<-layout_with_fr(g, grid="nogrid")
-
 eCol<-rep("grey50", length(E(g)))
 eCol[E(g)$adjacency=="non-adjacent"]<-"orange"
 
@@ -468,12 +465,41 @@ eType<-rep(1,length(E(g)))
 eType[E(g)$adjacency=="non-adjacent"]<-3
 
 
+# Plot Layout
+
+# LAYOUT OPTION #1: algorithm based layout (Fruchterman-Reingold)
+set.seed(1)
+l<-layout_with_fr(g, grid="nogrid")
+
+
+# LAYOUT OPTION #2: open interactive window to manual adjust layout
+tkplot(g,
+     # Vertices
+     vertex.size=5.5, vertex.color=V(g)$col,
+     vertex.label.cex=1,
+     #vertex.label=V(g)$title, 
+     vertex.label=NA, 
+     #edges
+     edge.width=eWidth, edge.color=eCol, edge.arrow.size=0.15, edge.arrow.width=3, edge.lty=eType
+     #layout
+  )
+l<-tk_coords(5) # use the ID# of the open window
+
+# save layout (if you like it :)) to retrieve later
+#write.table(l, "layout_1.txt", col.names=FALSE, row.names=FALSE, sep="\t")
+
+
+# LAYOUT OPTION #3: load previously saveed layout
+l<-as.matrix(read.table("layout_1.txt", sep="\t"))
+
+
+
 # Plot "filter layer"
 v_layer<-rep(rgb(1,1,1,alpha=0),length(V(g)))
 v_layer[V(g)$v_tag]<-hsv(0.59, 0.85, 0.95)
 
 e_layer<-rep(rgb(1,1,1,alpha=0),length(E(g)))
-e_layer[E(g)$e_tag]<-hsv(0.59, 0.85, 0.95)
+e_layer[E(g)$e_tag & E(g)$adjacency=="adjacent"]<-hsv(0.59, 0.85, 0.95)
 
 par(mar=c(0,0,0,0))
 plot(g,

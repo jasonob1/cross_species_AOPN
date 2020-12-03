@@ -5,6 +5,7 @@
 library(xml2)
 library(igraph)
 library(RCy3)
+library(RColorBrewer)
 
 # SOURCE CODE
 source("AOP-Net-Functions.R")
@@ -64,6 +65,14 @@ keTaxDom<-lapply(xml_find_all(xData, "/data/key-event/applicability"),FUN=functi
   }
 })
 
+keTaxWoe<-lapply(xml_find_all(xData, "/data/key-event/applicability"),FUN=function(x){
+  if("taxonomy"%in%xml_name(xml_children(x))){
+    twoe<-xml_text(xml_find_all(x, "taxonomy/evidence"))
+    return(twoe)
+  }
+})
+
+
 # proportion of KEs with taxonomic information
 sum(!sapply(keTaxDom, is.null)) / length(keTaxDom) # 247 / 1118 = 0.2209302 :(
 
@@ -73,6 +82,7 @@ keData<-data.frame(
   title=xml_text(xml_find_all(xData, "/data/key-event/title")),
   LOBO=xml_text(xml_find_all(xData, "/data/key-event/biological-organization-level")),
   taxDom=I(keTaxDom),
+  taxWoe=I(keTaxWoe),
   stringsAsFactors=FALSE
 )
 
@@ -87,6 +97,14 @@ kerTaxDom<-lapply(xml_find_all(xData, "/data/key-event-relationship/taxonomic-ap
   }
 })
 
+kerTaxWoe<-lapply(xml_find_all(xData, "/data/key-event-relationship/taxonomic-applicability"),FUN=function(x){
+  if("taxonomy"%in%xml_name(xml_children(x))){
+    twoe<-xml_text(xml_find_all(x, "taxonomy/evidence"))
+    return(twoe)
+  }
+})
+
+
 # proportion of KERs with taxonomic information
 sum(!sapply(kerTaxDom, is.null)) / length(kerTaxDom) # 230 / 1338 = 0.1718984
 
@@ -96,6 +114,7 @@ kerData<-data.frame(
   KEup=keID$ID[match(xml_text(xml_find_all(xData, "/data/key-event-relationship/title/upstream-id")),keID$ref)],
   KEdown=keID$ID[match(xml_text(xml_find_all(xData, "/data/key-event-relationship/title/downstream-id")),keID$ref)],
   taxDom=I(kerTaxDom),
+  taxWoe=I(kerTaxWoe),
   stringsAsFactors=FALSE
 )
 
@@ -304,7 +323,7 @@ V(g1)$title<-keData$title[match(V(g1)$ID, keData$ID)]
 
 # map taxonomic domains 
 V(g1)$taxDom<-keData$taxDom[match(V(g1)$ID, keData$ID)]
-
+V(g1)$taxWoe<-keData$taxWoe[match(V(g1)$ID, keData$ID)]
 
 
 #### MAP EDGE (KER) ATRTIBUTeS ####
@@ -394,6 +413,7 @@ E(g1)$quant_score<-wScores$score[match(E(g1)$quant, wScores$w)]
 
 # add taxanomic domain
 E(g1)$taxDom<-kerData$taxDom[match(E(g1)$ID, kerData$ID)]
+E(g1)$taxWoe<-kerData$taxWoe[match(E(g1)$ID, kerData$ID)]
 
 
 
@@ -446,15 +466,102 @@ speciesKERs<-lapply(allSpecies, function(x){
 names(speciesKERs)<-allSpecies
 
 
-# species tag for filters and layers
-V(g)$v_tag<-speciesKEs$human | speciesKEs$humans
-E(g)$e_tag<-speciesKERs$human | speciesKERs$humans
+# Species tag for filters and layers
+# Mammals
+species_of_interest<- c("human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries")
+# Fish
+#species_of_interest<- c("Danio rerio","fathead minnow","Fundulus heteroclitus","gilthead bream","killifish","Oreochromis niloticus","Oryzias latipes","teleost fish","zebra fish","zebrafish")
+# Amphibians
+#species_of_interest<- c("African clawed frog","Xenopus (Silurana) n. sp. tetraploid-1","Xenopus laevis","Xenopus laevis laevis")
+
+soi_keTable<-sapply(species_of_interest, function(x) speciesKEs[[x]])
+soi_kerTable<-sapply(species_of_interest, function(x) speciesKERs[[x]])
+
+V(g)$v_taxDom_tag<-apply(soi_keTable, 1, any)
+E(g)$e_taxDom_tag<-apply(soi_kerTable, 1, any)
+
+
+# Taxanomic WOE
+# OPTION 1: only compute WOE if species_of_interest has ONE species listed, if more than one set to "NA"
+# OPTION 2: if species_of_interest has MORE THAN ONE species, use the LOWEST WOE value
+taxWoe_option<-2
+
+
+# function to select "lowest" WOE value
+low_mod_high_reduce<-function(x){
+  if(any(x=="Low", na.rm=TRUE)){
+    return("Low")
+  }else if(any(x=="Moderate", na.rm=TRUE)){
+    return("Moderate")
+  }else if(any(x=="High", na.rm=TRUE)){
+    return("High")
+  }else{
+    return(NA)
+  }
+}  
+  
+
+# KE WOE: retrieve species-specific KE TaxWoes (accoding to selected taxWoe_option)
+soi_KE_loc<-lapply(V(g)$taxDom, function(x) which(x%in%species_of_interest))
+soi_KE_filtered<-list()
+
+# Option 1
+if(taxWoe_option==1 & length(species_of_interest)>1){
+  soi_KE_filtered<-as.list(rep(NA, length(V(g))))
+}else if(taxWoe_option==1 & length(species_of_interest)==1){
+  for(i in 1:length(soi_KE_loc)){
+    if(length(soi_KE_loc[[i]])==0){
+      soi_KE_filtered[[i]]<-NA
+    }else{
+      soi_KE_filtered[[i]]<-V(g)$taxWoe[[i]][soi_KE_loc[[i]]]
+    }
+  }
+}
+
+# Option 2
+if(taxWoe_option==2){
+  for(i in 1:length(soi_KE_loc)){
+    if(length(soi_KE_loc[[i]])==0){
+      soi_KE_filtered[[i]]<-NA
+    }else{
+      soi_KE_filtered[[i]]<-low_mod_high_reduce(V(g)$taxWoe[[i]][soi_KE_loc[[i]]])
+    }
+  }
+}
+
+# KER WOE: retrieve species-specific KER TaxWoes (accoding to selected taxWoe_option)
+soi_KER_loc<-lapply(E(g)$taxDom, function(x) which(x%in%species_of_interest))
+soi_KER_filtered<-list()
+
+# Option 1
+if(taxWoe_option==1 & length(species_of_interest)>1){
+  soi_KER_filtered<-as.list(rep(NA, length(E(g))))
+}else if(taxWoe_option==1 & length(species_of_interest)==1){
+  for(i in 1:length(soi_KER_loc)){
+    if(length(soi_KER_loc[[i]])==0){
+      soi_KER_filtered[[i]]<-NA
+    }else{
+      soi_KER_filtered[[i]]<-E(g)$taxWoe[[i]][soi_KER_loc[[i]]]
+    }
+  }
+}
+
+# Option 2
+if(taxWoe_option==2){
+  for(i in 1:length(soi_KER_loc)){
+    if(length(soi_KER_loc[[i]])==0){
+      soi_KER_filtered[[i]]<-NA
+    }else{
+      soi_KER_filtered[[i]]<-low_mod_high_reduce(E(g)$taxWoe[[i]][soi_KER_loc[[i]]])
+    }
+  }
+}
 
 
 
 #### PLOT GRAPH ####
 
-# standard plot variables
+### Standard plot variables
 eCol<-rep("grey50", length(E(g)))
 eCol[E(g)$adjacency=="non-adjacent"]<-"orange"
 
@@ -465,48 +572,71 @@ eType<-rep(1,length(E(g)))
 eType[E(g)$adjacency=="non-adjacent"]<-3
 
 
-# Plot Layout
+### Plot Layout
 
 # LAYOUT OPTION #1: algorithm based layout (Fruchterman-Reingold)
-set.seed(1)
-l<-layout_with_fr(g, grid="nogrid")
-
+if(FALSE){
+  set.seed(1)
+  l<-layout_with_fr(g, grid="nogrid")
+}
 
 # LAYOUT OPTION #2: open interactive window to manual adjust layout
-tkplot(g,
-     # Vertices
-     vertex.size=5.5, vertex.color=V(g)$col,
-     vertex.label.cex=1,
-     #vertex.label=V(g)$title, 
-     vertex.label=NA, 
-     #edges
-     edge.width=eWidth, edge.color=eCol, edge.arrow.size=0.15, edge.arrow.width=3, edge.lty=eType
-     #layout
-  )
-l<-tk_coords(5) # use the ID# of the open window
-
+if(FALSE){
+  tkplot(g,
+       # Vertices
+       vertex.size=5.5, vertex.color=V(g)$col,
+       vertex.label.cex=1,
+       #vertex.label=V(g)$title, 
+       vertex.label=NA, 
+       #edges
+       edge.width=eWidth, edge.color=eCol, edge.arrow.size=0.15, edge.arrow.width=3, edge.lty=eType
+       #layout
+    )
+  l<-tk_coords(5) # use the ID# of the open window
+}
 # save layout (if you like it :)) to retrieve later
 #write.table(l, "layout_1.txt", col.names=FALSE, row.names=FALSE, sep="\t")
-
 
 # LAYOUT OPTION #3: load previously saveed layout
 l<-as.matrix(read.table("layout_1.txt", sep="\t"))
 
 
 
-# Plot "filter layer"
+### Asign color values for "taxonomic filter layer"
+
+# woe_colors
+c1<-brewer.pal(9,"Blues")[8]
+c2<-brewer.pal(9,"Blues")[6]
+c3<-brewer.pal(9,"Blues")[4]
+woe_col<-c(c1,c2,c3)
+
+# set all KE and KERs as "tranparent"
 v_layer<-rep(rgb(1,1,1,alpha=0),length(V(g)))
-v_layer[V(g)$v_tag]<-hsv(0.59, 0.85, 0.95)
-
 e_layer<-rep(rgb(1,1,1,alpha=0),length(E(g)))
-e_layer[E(g)$e_tag & E(g)$adjacency=="adjacent"]<-hsv(0.59, 0.85, 0.95)
 
+# If no WOE info present (or if taxWoe_option 1, with more than ones species) (i.e. soi values are NA)
+if(all(is.na(soi_KE_filtered)) &  all(is.na(soi_KER_filtered))){
+  v_layer[V(g)$v_taxDom_tag]<-woe_col[1]
+  e_layer[E(g)$e_taxDom_tag & E(g)$adjacency=="adjacent"]<-woe_col[1]
+
+# if including WOE info  
+}else{
+  v_layer[V(g)$v_taxDom_tag]<-woe_col[as.numeric(as.factor(unlist(soi_KE_filtered)[!is.na(soi_KE_filtered)]))]
+  e_layer[E(g)$e_taxDom_tag]<-woe_col[as.numeric(as.factor(unlist(soi_KER_filtered)[!is.na(soi_KER_filtered)]))]
+  e_layer[E(g)$adjacency=="non-adjacent"]<-rgb(1,1,1,alpha=0)
+}
+
+
+
+### Plot
+
+# plot taxonomic filter layer
 par(mar=c(0,0,0,0))
 plot(g,
      # Vertices
-     vertex.size=8, vertex.color=v_layer, vertex.frame.color=rgb(1,1,1,alpha=0), vertex.label=NA,
+     vertex.size=9, vertex.color=v_layer, vertex.frame.color=rgb(1,1,1,alpha=0), vertex.label=NA,
      #edges
-     edge.width=5, edge.color=e_layer, edge.arrow.size=0.15, edge.arrow.width=3,
+     edge.width=8, edge.color=e_layer, edge.arrow.size=0.15, edge.arrow.width=3,
      #layout
      layout=l)
 

@@ -719,6 +719,32 @@ netLaopCount_adj<-sapply(netLaops_adj, length)
 sum(netLaopCount_adj)
 
 
+### Compare user-defined vs total LAOPS to identify "emergent" AOP (adjacent KERs only)
+
+# user defined KE paths
+uLaopKEs<-sapply(uLaops_adj, function(x){
+  sapply(x, function(y){
+    sapply(y, function(z){
+      paste(attr(z,"names"),collapse=", ")
+    })
+  })
+})
+uLaopTable<-unlist(uLaopKEs, use.names = FALSE)
+
+# all KE paths in the network
+netLaopKEs<-sapply(netLaops_adj, function(x){
+  sapply(x, function(y){
+    paste(attr(y,"names"),collapse=", ")
+  })
+})
+netLaopTable<-unlist(netLaopKEs, use.names = FALSE)
+
+# combine into a table and identify "emergent" aops
+allKEPathTable<-data.frame(emergent=!netLaopTable%in%uLaopTable, path=netLaopTable)
+
+# write.table(allKEPathTable, "emergent_adjacent_mie_to_ao_paths.txt", sep="\t", row.names = FALSE)
+
+
 #### EXPORT IGRAPH OBJECT TO CYTOSCAPE ####
 createNetworkFromIgraph(g, "thyroidNet_human_tags")
 

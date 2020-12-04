@@ -740,9 +740,16 @@ netLaopKEs<-sapply(netLaops_adj, function(x){
 netLaopTable<-unlist(netLaopKEs, use.names = FALSE)
 
 # combine into a table and identify "emergent" aops
-allKEPathTable<-data.frame(emergent=!netLaopTable%in%uLaopTable, path=netLaopTable)
+allKEPathTable<-data.frame(emergent=!netLaopTable%in%uLaopTable, path=netLaopTable, stringsAsFactors = FALSE)
+mie_ao<-lapply(allKEPathTable[,2], function(x){
+  s<-unlist(strsplit(x, ", "))
+  return(c(s[1],s[length(s)]))
+})
+mie_ao<-do.call(rbind, mie_ao)
 
-# write.table(allKEPathTable, "emergent_adjacent_mie_to_ao_paths.txt", sep="\t", row.names = FALSE)
+emergent_table<-data.frame(emergent=allKEPathTable$emergent, mie=mie_ao[,1], ao=mie_ao[,2], path=allKEPathTable$path, stringsAsFactors = FALSE)
+
+# write.table(emergent_table, "emergent_adjacent_mie_to_ao_paths.txt", sep="\t", row.names = FALSE)
 
 
 #### EXPORT IGRAPH OBJECT TO CYTOSCAPE ####

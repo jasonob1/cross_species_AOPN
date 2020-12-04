@@ -120,7 +120,7 @@ kerData<-data.frame(
 
 #### AOP DATA TABLE ####
 
-# OECD status: not all aops have an "oecd-status" xml tag, so must us "if" to return NA when missing
+# OECD status: not all aops have an "oecd-status" xml tag, so must use "if" to return NA when missing
 oecdStatus<-sapply(xml_find_all(xData, "/data/aop/status"),FUN=function(x){
   if("oecd-status"%in%xml_name(xml_children(x))){
     return(xml_text(xml_find_all(x,"oecd-status")))
@@ -129,7 +129,7 @@ oecdStatus<-sapply(xml_find_all(xData, "/data/aop/status"),FUN=function(x){
   }
 })
 
-# SAAOP status: not all aops have an "saaop-status" xml tag, so must us "if" to return NA when missing
+# SAAOP status: not all aops have an "saaop-status" xml tag, so must use "if" to return NA when missing
 saaopStatus<-sapply(xml_find_all(xData, "/data/aop/status"),FUN=function(x){
   if("saaop-status"%in%xml_name(xml_children(x))){
     return(xml_text(xml_find_all(x,"saaop-status")))
@@ -652,6 +652,71 @@ plot(g,
      #layout
      layout=l,
      add=TRUE)
+
+
+#### EMERGENT AOPS ####
+
+### First need to identify user defined linear AOPs
+aoiData<-aData[aData$ID%in%AOPs_of_interest,]
+
+uLaops<-list()
+uLaops_adj<-list()
+
+uLaopCount<-vector()
+uLaopCount_adj<-vector()
+
+for(i in 1:nrow(aoiData)){
+
+  # edge list for each user-define AOP
+  eList<-aoiData$kers[[i]]
+  eList$KEup<-as.character(eList$KEup)
+  eList$KEdown<-as.character(eList$KEdown)
+  
+  # subgraph by edgelist
+  subG<-graph_from_edgelist(as.matrix(eList[,c("KEup", "KEdown")]), directed=TRUE)
+  
+  # add KE_KED to each KE (MIE, AO, or KE)
+  subKed<-data.frame(KE=c(eList$KEup,eList$KEdown), KED=c(eList$KEDup, eList$KEDdown), stringsAsFactors=FALSE) 
+  subKed<-unique(subKed)
+  V(subG)$KE_KED<-subKed$KED[match(V(subG)$name,subKed$KE)]
+  
+  # determine adjacency (algorithmically)
+  subG<-add_KER_adjacency(subG)
+  subG_adj<-subgraph.edges(subG, eids=E(subG)[E(subG)$adjacency=="adjacent"] )
+  
+  # ALL linear AOPs (including paths with non-adjacent KERs)
+  uLaops[[i]]<-linear.AOPs(subG)
+  if(length(uLaops[[i]])==0){
+    uLaopCount<-c(uLaopCount,0)
+  }else{
+    uLaopCount<-c(uLaopCount,sum(sapply(uLaops[[i]],length)))
+  }
+  
+  # Linear AOPs with adjacent KERs only
+  uLaops_adj[[i]]<-linear.AOPs(subG_adj)
+  if(length(uLaops_adj[[i]])==0){
+    uLaopCount_adj<-c(uLaopCount_adj,0)
+  }else{
+    uLaopCount_adj<-c(uLaopCount_adj,sum(sapply(uLaops_adj[[i]],length)))
+  }
+}
+
+sum(uLaopCount)
+sum(uLaopCount_adj)
+
+
+### Determine ALL linear AOPs in full network, and adjacent only network
+
+# full network
+netLaops<-linear.AOPs(g)
+netLaopCount<-sapply(netLaops, length)
+sum(netLaopCount)
+
+# adjecent-KER-only network
+g_adj<-subgraph.edges(g, eids=E(g)[E(g)$adjacency=="adjacent"] )
+netLaops_adj<-linear.AOPs(g_adj)
+netLaopCount_adj<-sapply(netLaops_adj, length)
+sum(netLaopCount_adj)
 
 
 #### EXPORT IGRAPH OBJECT TO CYTOSCAPE ####

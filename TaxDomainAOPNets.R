@@ -467,12 +467,14 @@ names(speciesKERs)<-allSpecies
 
 
 # Species tag for filters and layers
+# Humans
+species_of_interest<- c("all species", "human", "humans")
 # Mammals
-species_of_interest<- c("human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries")
+species_of_interest<- c("all species", "human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries")
 # Fish
-#species_of_interest<- c("Danio rerio","fathead minnow","Fundulus heteroclitus","gilthead bream","killifish","Oreochromis niloticus","Oryzias latipes","teleost fish","zebra fish","zebrafish")
+#species_of_interest<- c("all species", "Danio rerio","fathead minnow","Fundulus heteroclitus","gilthead bream","killifish","Oreochromis niloticus","Oryzias latipes","teleost fish","zebra fish","zebrafish", "Salmo salar", "Dicentrarchus labrax", "Perca flavescens", "bluefin tuna")
 # Amphibians
-#species_of_interest<- c("African clawed frog","Xenopus (Silurana) n. sp. tetraploid-1","Xenopus laevis","Xenopus laevis laevis")
+#species_of_interest<- c("all species", "African clawed frog","Xenopus (Silurana) n. sp. tetraploid-1","Xenopus laevis","Xenopus laevis laevis", "Xenopus (Silurana) epitropicalis")
 
 soi_keTable<-sapply(species_of_interest, function(x) speciesKEs[[x]])
 soi_kerTable<-sapply(species_of_interest, function(x) speciesKERs[[x]])

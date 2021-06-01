@@ -468,13 +468,15 @@ names(speciesKERs)<-allSpecies
 
 # Species tag for filters and layers
 # Humans
-species_of_interest<- c("all species", "human", "humans")
+#species_of_interest<- c("all species", "human", "humans")
 # Mammals
-species_of_interest<- c("all species", "human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries")
+species_of_interest<- c("all species", "human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries", "Bos taurus", "Canis lupus familiaris", "Erinaceus europaeus", "Pan troglodytes", "Rattus norvegicus", "Sprague-Dawley", "Bulbalus bulbalis", "Mus musculus", "Ovis aries", "Rattus sp.", "Sus scrofa", "Macaca mulatta", "Monodelphis domestica")
 # Fish
-#species_of_interest<- c("all species", "Danio rerio","fathead minnow","Fundulus heteroclitus","gilthead bream","killifish","Oreochromis niloticus","Oryzias latipes","teleost fish","zebra fish","zebrafish", "Salmo salar", "Dicentrarchus labrax", "Perca flavescens", "bluefin tuna")
+#species_of_interest<- c("all species", "teleost fish", Danio rerio","fathead minnow","Fundulus heteroclitus","gilthead bream","killifish","Oreochromis niloticus","Oryzias latipes","teleost fish","zebra fish","zebrafish", "Salmo salar", "Dicentrarchus labrax", "Perca flavescens", "bluefin tuna")
 # Amphibians
 #species_of_interest<- c("all species", "African clawed frog","Xenopus (Silurana) n. sp. tetraploid-1","Xenopus laevis","Xenopus laevis laevis", "Xenopus (Silurana) epitropicalis")
+# Birds
+#species_of_interest<- c("all species", "Meleagris gallopavo", "Gallus gallus", "chicken")
 
 soi_keTable<-sapply(species_of_interest, function(x) speciesKEs[[x]])
 soi_kerTable<-sapply(species_of_interest, function(x) speciesKERs[[x]])

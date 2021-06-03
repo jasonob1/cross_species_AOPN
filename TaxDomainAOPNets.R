@@ -470,7 +470,7 @@ names(speciesKERs)<-allSpecies
 # Humans
 #species_of_interest<- c("all species", "human", "humans")
 # Mammals
-#species_of_interest<- c("all species", "human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries", "Bos taurus", "Canis lupus familiaris", "Erinaceus europaeus", "Pan troglodytes", "Rattus norvegicus", "Sprague-Dawley", "Bulbalus bulbalis", "Mus musculus", "Ovis aries", "Rattus sp.", "Sus scrofa", "Macaca mulatta", "Monodelphis domestica")
+#species_of_interest<- c("all species", "human", "humans", "mouse", "mice", "rat", "rats", "Pig", "pigs", "cat", "Ovis orientalis aries", "Bos taurus", "Canis lupus familiaris", "Erinaceus europaeus", "Pan troglodytes", "Rattus norvegicus", "Sprague-Dawley", "Bubalus bubalis", "Mus musculus", "Ovis aries", "Rattus sp.", "Sus scrofa", "Macaca mulatta", "Monodelphis domestica")
 # Fish
 species_of_interest<- c("all species", "teleost fish", "Danio rerio","fathead minnow","Fundulus heteroclitus","gilthead bream","killifish","Oreochromis niloticus","Oryzias latipes","teleost fish","zebra fish","zebrafish", "Salmo salar", "Dicentrarchus labrax", "Perca flavescens", "bluefin tuna")
 # Amphibians
